@@ -20,7 +20,6 @@ interface Product {
 
 // DataManager component for fetching and rendering products with infinite scroll
 const DataManager: React.FC = () => {
-    // Fetch products using useInfiniteQuery
     const {
         data,
         fetchNextPage,
@@ -29,39 +28,42 @@ const DataManager: React.FC = () => {
         isLoading,
         isError,
         error,
-    } = useInfiniteQuery<ApiResponse, Error>({
+    } = useInfiniteQuery<ApiResponse, Error, ApiResponse, [string], number>({
         queryKey: ['products'],
         queryFn: async ({ pageParam = 1 }) => {
-            const response = await fetch(`http://localhost:3000/api/products?page=${pageParam}&limit=12`);
+            const response = await fetch(
+                `http://localhost:3000/api/products?page=${pageParam}&limit=12`
+            );
             if (!response.ok) throw new Error('Failed to fetch products');
             return response.json();
         },
-        getNextPageParam: (lastPage, allpage) => {
-            const page = allpage.length
-            return page < lastPage.totalPages ? page + 1 : undefined
-        }
+        getNextPageParam: (lastPage, allPages) => {
+            const nextPage = allPages.length + 1;
+            return nextPage <= lastPage.totalPages ? nextPage : undefined;
+        },
+        initialPageParam: 1,
     });
 
-    // Handle infinite scroll with IntersectionObserver
     const observer = React.useRef<IntersectionObserver | null>(null);
     const lastProductRef = React.useCallback(
         (node: HTMLDivElement | null) => {
             if (isFetchingNextPage || isLoading) return;
             if (observer.current) observer.current.disconnect();
+
             observer.current = new IntersectionObserver((entries) => {
                 if (entries[0].isIntersecting && hasNextPage) {
                     fetchNextPage();
                 }
             });
+
             if (node) observer.current.observe(node);
         },
         [isFetchingNextPage, isLoading, hasNextPage, fetchNextPage]
     );
 
-    // Flatten pages into a single array of products
-    const products = data?.pages.flatMap((page) => page.data) || [];
-   
-    // Render loading state
+    // @ts-ignore
+    const products: Product[] = data?.pages.flatMap((page) => page.data) ?? [];
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -70,7 +72,6 @@ const DataManager: React.FC = () => {
         );
     }
 
-    // Render error state
     if (isError) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -79,7 +80,6 @@ const DataManager: React.FC = () => {
         );
     }
 
-    // Render product grid
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product, index) => (
