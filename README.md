@@ -48,4 +48,4 @@ Follow these steps to get the project up and running:
 
    ```bash
    git clone https://github.com/alimahmoudidev/sample-use-infinite-query.git
-   cd infinite-scroll-sample
+   cd sample-use-infinite-query
